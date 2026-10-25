@@ -1,0 +1,19 @@
+# Cloudflare Worker that proxies Flood Go's AI chat to Gemini.
+# The API key is NOT stored here. Set it with: npx wrangler secret put GEMINI_API_KEY
+name = "floodgo-ai"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Comma-separated list of site origins allowed to call the AI (scheme + host, no path).
+ALLOWED_ORIGINS = "https://gunz19.github.io"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+
+# 10 questions per minute per visitor IP, per Cloudflare location (approximate).
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "41001"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60

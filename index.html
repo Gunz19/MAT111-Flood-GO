@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="เช็กก่อนเดินทาง: ฝนตามเส้นทาง ความเสี่ยงน้ำท่วมโดยประมาณ สิ่งที่ต้องเตรียม และเบอร์ฉุกเฉิน">
+<meta name="theme-color" content="#1d7a3a">
+<title>ไปได้ไหม – Flood Go</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef3f8;--card:#fff;--ink:#10202f;--muted:#4a5a6a;--line:#cfdbe6;--soft:#e6edf4;
+  --green:#1d7a3a;--green-bg:#e2f4e7;--green-ink:#0c4520;
+  --yellow:#e9a700;--yellow-bg:#fff3d1;--yellow-ink:#5a3d00;
+  --red:#c23a2b;--red-bg:#fde5e1;--red-ink:#7a1b11;
+  --grey:#6b7a88;--grey-bg:#e8edf2;--grey-ink:#33414e;
+  --blue:#0f5b8f;--radius:16px
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai",system-ui,sans-serif;font-size:18px;line-height:1.6;overflow-x:hidden;overflow-wrap:anywhere}
+a{color:var(--blue)}
+[hidden]{display:none !important}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* ---------- หัวเว็บและเมนู ---------- */
+.top{position:sticky;top:0;z-index:1100;background:var(--card);border-bottom:3px solid var(--green);display:flex;gap:12px;align-items:center;padding:8px 20px}
+.logo{font-weight:800;font-size:26px;color:var(--green);text-decoration:none;line-height:1.2;white-space:nowrap}
+.logo span{display:block;font-size:13px;font-weight:600;color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tabs a{display:flex;align-items:center;gap:6px;border:2px solid transparent;color:var(--ink);border-radius:12px;padding:6px 14px;font-weight:600;text-decoration:none;font-size:17px;min-height:48px}
+.tabs a:hover{border-color:var(--line)}
+.tabs a.on{background:var(--green);color:#fff;border-color:var(--green)}
+.tabs .ico{font-size:20px;line-height:1}
+.call-top{background:var(--red);color:#fff;border-radius:12px;padding:8px 14px;font-weight:800;text-decoration:none;white-space:nowrap;min-height:48px;display:flex;align-items:center}
+
+/* ---------- โครงหน้า ---------- */
+main{max-width:1080px;margin:0 auto;padding:24px 20px 40px}
+.view{display:none}
+.view.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+h1{font-size:34px;line-height:1.25;margin:0;font-weight:800}
+h2{font-size:28px;line-height:1.3;margin:0;font-weight:800}
+h1:focus,h2:focus{outline:none}
+h3{font-size:20px;margin:0 0 8px;font-weight:800}
+p{margin:0}
+.lead{color:var(--muted)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:16px}
+.meta{color:var(--muted);font-size:16px}
+.hint{color:var(--muted);font-size:15px}
+
+/* ---------- ปุ่ม ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:800;font-size:20px;color:#fff;cursor:pointer;text-align:center;text-decoration:none}
+.btn.g{background:var(--green)}.btn.b{background:var(--blue)}
+.btn.o{background:var(--card);color:var(--blue);border:2px solid var(--blue)}
+.btn.s{font-size:17px;min-height:50px;font-weight:600}
+.btn:disabled{opacity:.6;cursor:wait}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.link{background:none;border:0;padding:0;font:inherit;color:var(--blue);text-decoration:underline;cursor:pointer;min-height:32px}
+
+/* ---------- ป้ายสถานะ เขียว/เหลือง/แดง ---------- */
+.status{display:flex;gap:16px;align-items:center;border-radius:var(--radius);padding:16px 18px;border:3px solid var(--grey);background:var(--grey-bg);color:var(--grey-ink)}
+.status-icon{flex:none;width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;background:#fff}
+.status-name{font-size:32px;font-weight:800;line-height:1.2}
+.status-sub{font-size:17px;font-weight:600}
+.status-tag{font-size:14px;margin-top:2px}
+.status.big .status-icon{width:96px;height:96px;font-size:50px}
+.status.big .status-name{font-size:40px}
+.status.green{border-color:var(--green);background:var(--green-bg);color:var(--green-ink)}
+.status.yellow{border-color:var(--yellow);background:var(--yellow-bg);color:var(--yellow-ink)}
+.status.red{border-color:var(--red);background:var(--red-bg);color:var(--red-ink)}
+
+/* ---------- อากาศตอนนี้และกราฟฝน ---------- */
+.now{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.now .wx{font-size:44px;line-height:1}
+.now b{display:block;font-size:28px;line-height:1.2}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bar{display:flex;flex-direction:column;align-items:center;text-align:center;font-size:14px;line-height:1.35;min-width:0}
+.bar-val{font-weight:800;font-size:16px}
+.bar-track{position:relative;width:100%;max-width:64px;height:96px;background:var(--soft);border-radius:10px;overflow:hidden;margin:4px 0}
+.bar-fill{position:absolute;left:0;right:0;bottom:0;border-radius:10px 10px 0 0;background:#b9c6d2}
+.bar.r1 .bar-fill{background:#5bb5e6}.bar.r2 .bar-fill{background:var(--yellow)}.bar.r3 .bar-fill{background:var(--red)}
+.bar.rx .bar-track{background:repeating-linear-gradient(45deg,var(--soft),var(--soft) 6px,#fff 6px,#fff 12px)}
+.bar-time{font-weight:800;white-space:nowrap}
+.bar-range{font-size:13px;white-space:nowrap}
+.bar-word{font-weight:600}
+.bar-prob{color:var(--muted)}
+
+/* ---------- แผนที่ ---------- */
+.mapbox{position:relative;isolation:isolate}
+.map{height:360px;border:2px solid var(--line);border-radius:var(--radius);background:var(--soft);z-index:0}
+.map.notiles{background:repeating-linear-gradient(45deg,#e6edf4,#e6edf4 10px,#dde6ef 10px,#dde6ef 20px)}
+.map-msg{position:absolute;left:56px;right:12px;top:12px;z-index:1000;background:rgba(255,255,255,.96);border:2px solid var(--yellow);color:var(--yellow-ink);border-radius:12px;padding:8px 12px;font-size:15px;font-weight:600;pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:15px;color:var(--muted)}
+.ramp{display:inline-block;width:110px;height:12px;border-radius:6px;background:linear-gradient(90deg,#9fe3ff,#1e8ccf,#ffd200,#ff7a00,#d0001b);vertical-align:middle}
+.dotkey{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:4px;border:2px solid #fff;box-shadow:0 0 0 1px #8899aa}
+
+/* ---------- ฟอร์มเส้นทาง ---------- */
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.step label{display:flex;align-items:center;gap:10px;font-weight:800;margin-bottom:8px;font-size:20px}
+.num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:800}
+.btn .num{background:#fff;color:var(--green)}
+input[type=text]{width:100%;font:inherit;min-height:54px;padding:10px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--card);color:var(--ink);margin-bottom:10px}
+.msg-box{border-radius:12px;padding:12px 14px;font-weight:600;border:2px solid var(--line);background:var(--card)}
+.msg-box.error{border-color:var(--red);background:var(--red-bg);color:var(--red-ink)}
+.msg-box.ok{border-color:var(--green);background:var(--green-bg);color:var(--green-ink)}
+
+/* ---------- ผลลัพธ์ ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}
+.stat span{font-size:14px;color:var(--muted)}
+.stat b{font-size:22px;line-height:1.3}
+.stat small{font-size:13px;color:var(--muted)}
+.route-name{font-weight:800;font-size:20px}
+.found{font-size:15px;color:var(--muted)}
+ul.advice{margin:0;padding-left:22px}
+ul.advice li{margin-bottom:6px}
+.note{border-left:6px solid var(--blue);background:#e6f0f8;border-radius:10px;padding:12px 14px;font-size:16px}
+.note b{display:block}
+
+/* ---------- เบอร์ฉุกเฉิน ---------- */
+.sos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.sos a{display:flex;flex-direction:column;justify-content:center;border:2px solid var(--red);background:var(--card);color:var(--red-ink);border-radius:14px;padding:10px 12px;text-decoration:none;min-height:72px}
+.sos a b{font-size:28px;line-height:1.1;color:var(--red)}
+.sos a span{font-size:15px;font-weight:600}
+.official{margin:8px 0 0;padding-left:22px;font-size:16px}
+
+/* ---------- เตรียมของ ---------- */
+.check{display:flex;gap:14px;align-items:center;padding:14px 16px;margin-bottom:10px;font-weight:600;cursor:pointer;min-height:60px}
+.check input{flex:none;width:28px;height:28px;accent-color:var(--green)}
+.check:has(input:checked){border-color:var(--green);background:var(--green-bg)}
+.progress{font-weight:800;color:var(--green)}
+textarea{width:100%;min-height:160px;font:inherit;font-size:16px;border:2px solid var(--line);border-radius:12px;padding:10px}
+
+/* ---------- ถาม AI ---------- */
+.chat{height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.msg{padding:10px 14px;border-radius:14px;max-width:88%;white-space:pre-wrap}
+.msg.u{align-self:flex-end;background:var(--blue);color:#fff}
+.msg.a{align-self:flex-start;background:var(--soft)}
+.msg small{display:block;margin-top:6px;font-size:14px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--blue);background:var(--card);color:var(--blue);border-radius:999px;padding:6px 14px;font:inherit;font-size:16px;font-weight:600;cursor:pointer;min-height:44px}
+.ai-form{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:start}
+.ai-form input{margin:0}
+.ai-form .btn{width:auto;min-width:84px}
+.pill{display:inline-block;border-radius:999px;padding:2px 12px;font-size:15px;font-weight:600}
+.pill.on{background:var(--green-bg);color:var(--green-ink)}.pill.off{background:var(--grey-bg);color:var(--grey-ink)}
+
+footer{max-width:1080px;margin:0 auto;color:var(--muted);font-size:14px;padding:0 20px 28px}
+footer p{margin-bottom:6px}
+
+/* ---------- มือถือ ---------- */
+@media (max-width:820px){
+  .view.on{grid-template-columns:minmax(0,1fr)}
+  .top{padding:8px 14px}
+  .logo{font-size:22px}
+  .call-top{margin-left:auto}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:1100;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--card);border-top:2px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(16,32,47,.08)}
+  .tabs a{flex-direction:column;gap:0;padding:4px 2px;font-size:14px;min-height:58px;justify-content:center;text-align:center;line-height:1.25}
+  .tabs .ico{font-size:22px}
+  body{padding-bottom:84px}
+  main{padding:16px 14px 28px}
+  h1{font-size:28px}h2{font-size:24px}
+  .map{height:300px}
+  .status-name{font-size:28px}.status.big .status-name{font-size:34px}
+  .status.big .status-icon{width:80px;height:80px;font-size:42px}
+}
+@media (max-width:420px){
+  .actions,.sos{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .stats .stat:last-child{grid-column:1 / -1}
+  .ai-form{grid-template-columns:1fr 1fr}
+  .ai-form input{grid-column:1 / -1}
+  .ai-form .btn{width:100%}
+}
+@media print{
+  .top,.tabs,footer,.noprint,.view:not(#prep){display:none !important}
+  #prep{display:block !important}
+  body{background:#fff;padding:0}
+  .card{border-color:#999}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="#home">ไปได้ไหม<span>Flood Go</span></a>
+  <nav class="tabs" aria-label="เมนูหลัก">
+    <a href="#home" data-v="home"><span class="ico" aria-hidden="true">🏠</span>หน้าแรก</a>
+    <a href="#route" data-v="route"><span class="ico" aria-hidden="true">🗺️</span>เช็กเส้นทาง</a>
+    <a href="#prep" data-v="prep"><span class="ico" aria-hidden="true">🎒</span>เตรียมของ</a>
+    <a href="#ai" data-v="ai"><span class="ico" aria-hidden="true">💬</span>ถาม AI</a>
+  </nav>
+  <a class="call-top" href="tel:1784" aria-label="โทร 1784 สายด่วน ปภ.">📞 1784</a>
+</header>
+
+<main>
+  <!-- ---------- หน้าแรก ---------- -->
+  <section class="view" id="home" aria-labelledby="homeTitle">
+    <div class="col">
+      <div>
+        <h1 id="homeTitle" tabindex="-1">เดินทางวันนี้ ไปได้ไหม?</h1>
+        <p class="lead">ตอบง่ายๆ ว่า ไป รอ หรือไม่ควรไป พร้อมบอกว่าต้องเตรียมอะไร</p>
+      </div>
+      <div class="status unknown" id="homeStatus" role="status" aria-live="polite">
+        <div class="status-icon" aria-hidden="true">⏳</div>
+        <div><div class="status-name">กำลังโหลด...</div><div class="status-sub">กำลังโหลดพยากรณ์ฝน</div></div>
+      </div>
+      <div class="card" id="homeWeather" hidden>
+        <div class="now" id="homeNow"><span class="wx" id="wxIcon" aria-hidden="true"></span><div><b id="wxTemp"></b><span id="wxText"></span></div></div>
+        <h3>ฝน 4 ชั่วโมงข้างหน้า</h3>
+        <div class="bars" id="homeBars"></div>
+      </div>
+      <p class="meta"><span id="placeLabel">บริเวณกรุงเทพฯ (ค่าเริ่มต้น)</span> · <button class="link" id="homeLoc" type="button">📍 ใช้ตำแหน่งของฉัน</button></p>
+      <p class="meta" id="updated" aria-live="polite"></p>
+      <div class="actions">
+        <a class="btn g" href="#route">🗺️ เช็กเส้นทาง</a>
+        <a class="btn b" href="#ai">💬 ถาม AI (พูดได้)</a>
+      </div>
+    </div>
+    <div class="col">
+      <div class="mapbox"><div class="map" id="map1" role="region" aria-label="แผนที่เรดาร์ฝน"></div><div class="map-msg" hidden></div></div>
+      <p class="legend"><span><span class="ramp" aria-hidden="true"></span> สีบนแผนที่ = เรดาร์ฝน (ฟ้า = ฝนเบา, เหลือง-แดง = ฝนหนัก)</span><span id="radarMsg"></span></p>
+      <div class="card">
+        <h3>เบอร์ฉุกเฉิน</h3>
+        <div class="sos">
+          <a href="tel:1784"><b>1784</b><span>สายด่วน ปภ. น้ำท่วม/ภัยพิบัติ</span></a>
+          <a href="tel:1669"><b>1669</b><span>เจ็บป่วยฉุกเฉิน (สพฉ.)</span></a>
+        </div>
+        <ul class="official">
+          <li><a href="https://www.tmd.go.th/" target="_blank" rel="noopener">กรมอุตุนิยมวิทยา</a> – ประกาศเตือนภัยอากาศ</li>
+          <li><a href="https://www.thaiwater.net/" target="_blank" rel="noopener">ThaiWater</a> – ระดับน้ำจริงจากสถานีวัด</li>
+          <li><a href="https://www.disaster.go.th/" target="_blank" rel="noopener">กรมป้องกันและบรรเทาสาธารณภัย</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- เช็กเส้นทาง ---------- -->
+  <section class="view" id="route" aria-labelledby="routeTitle">
+    <div class="col">
+      <h2 id="routeTitle" tabindex="-1">จะไปไหนครับ/ค่ะ?</h2>
+      <form id="routeForm" novalidate>
+        <ol class="steps">
+          <li class="card step">
+            <label for="from"><span class="num">1</span>ต้นทาง (จาก)</label>
+            <input type="text" id="from" autocomplete="off" maxlength="120" placeholder="พิมพ์ชื่อสถานที่ หรือกดปุ่มด้านล่าง">
+            <button class="btn b s" id="loc" type="button">📍 ใช้ตำแหน่งของฉัน</button>
+          </li>
+          <li class="card step">
+            <label for="to"><span class="num">2</span>ปลายทาง (ถึง)</label>
+            <input type="text" id="to" autocomplete="off" maxlength="120" placeholder="เช่น ตลาดบางกะปิ, โรงพยาบาลศิริราช">
+            <button class="btn o s" id="mic" type="button">🎤 กดแล้วพูดชื่อสถานที่</button>
+          </li>
+          <li><button class="btn g" id="go" type="submit"><span class="num">3</span>ตรวจสอบเลย</button></li>
+        </ol>
+      </form>
+      <div class="msg-box" id="routeMsg" role="status" aria-live="polite" hidden></div>
+      <p class="hint">พิมพ์ชื่อให้ชัด เช่น เพิ่มชื่อเขต อำเภอ หรือจังหวัด ระบบจะค้นหาเมื่อกด "ตรวจสอบเลย" เท่านั้น</p>
+    </div>
+    <div class="col">
+      <div class="mapbox"><div class="map" id="map2" role="region" aria-label="แผนที่ต้นทางและปลายทาง"></div><div class="map-msg" hidden></div></div>
+    </div>
+  </section>
+
+  <!-- ---------- ผลการตรวจสอบ ---------- -->
+  <section class="view" id="result" aria-labelledby="resultTitle">
+    <div class="col">
+      <h2 id="resultTitle" tabindex="-1">ผลการตรวจสอบเส้นทาง</h2>
+      <div class="status big unknown" id="resStatus" role="status">
+        <div class="status-icon" aria-hidden="true"></div>
+        <div><div class="status-name"></div><div class="status-sub"></div><div class="status-tag">ประเมินจากฝนพยากรณ์ ไม่ใช่ระดับน้ำจริง</div></div>
+      </div>
+      <div>
+        <p class="route-name" id="resRoute"></p>
+        <p class="found" id="resFound"></p>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>ระยะทาง</span><b id="resKm"></b></div>
+        <div class="stat"><span>เวลาขับโดยประมาณ</span><b id="resTime"></b><small>ไม่รวมรถติด/ถนนปิดจริง</small></div>
+        <div class="stat"><span>ฝนสูงสุดตามทาง</span><b id="resMax"></b><small>มม. ต่อชั่วโมง</small></div>
+      </div>
+      <div class="card"><h3>คำแนะนำ</h3><ul class="advice" id="resAdvice"></ul></div>
+      <div class="sos" id="resSos" hidden>
+        <a href="tel:1784"><b>1784</b><span>สายด่วน ปภ.</span></a>
+        <a href="tel:1669"><b>1669</b><span>เจ็บป่วยฉุกเฉิน</span></a>
+      </div>
+      <div class="note"><b>สีเขียวไม่ได้แปลว่าถนนปลอดภัยแน่นอน</b>ผลนี้คิดจากพยากรณ์ฝนเท่านั้น ไม่ได้วัดน้ำบนถนนจริง ก่อนออกเดินทางให้ดูประกาศทางการ ถนนปิด และสภาพจริงในพื้นที่ ถ้าเจอน้ำท่วมถนน อย่าขับหรือเดินฝ่า</div>
+      <div class="actions">
+        <button class="btn b" id="speak" type="button">🔊 ฟังเสียง</button>
+        <a class="btn g" href="#prep">🎒 สิ่งที่ต้องเตรียม</a>
+      </div>
+      <a class="btn o s" href="#route">↩ ตรวจเส้นทางอื่น</a>
+    </div>
+    <div class="col">
+      <div class="mapbox"><div class="map" id="map3" role="region" aria-label="แผนที่เส้นทาง"></div><div class="map-msg" hidden></div></div>
+      <p class="legend"><span><span class="dotkey" style="background:#1d7a3a"></span>ฝนน้อย</span><span><span class="dotkey" style="background:#e9a700"></span>ระวัง</span><span><span class="dotkey" style="background:#c23a2b"></span>ฝนหนัก</span><span><span class="dotkey" style="background:#6b7a88"></span>ไม่มีข้อมูล</span><span>= จุดตรวจฝน 6 จุด</span></p>
+      <div class="card">
+        <h3>ฝนตามเส้นทาง 4 ชั่วโมงข้างหน้า</h3>
+        <div class="bars" id="resBars"></div>
+        <p class="hint" id="resData" style="margin-top:8px"></p>
+      </div>
+      <p class="hint" id="source"></p>
+    </div>
+  </section>
+
+  <!-- ---------- สิ่งที่ต้องเตรียม ---------- -->
+  <section class="view" id="prep" aria-labelledby="prepTitle">
+    <div class="col">
+      <div>
+        <h2 id="prepTitle" tabindex="-1">สิ่งที่ควรเตรียม</h2>
+        <p class="progress" id="prepProgress"></p>
+      </div>
+      <div id="list"></div>
+    </div>
+    <div class="col">
+      <div class="card"><h3>เบอร์ฉุกเฉิน</h3>
+        <div class="sos">
+          <a href="tel:1784"><b>1784</b><span>สายด่วน ปภ. น้ำท่วม/ภัยพิบัติ</span></a>
+          <a href="tel:1669"><b>1669</b><span>เจ็บป่วยฉุกเฉิน (สพฉ.)</span></a>
+        </div>
+      </div>
+      <button class="btn b noprint" id="print" type="button">🖨️ พิมพ์รายการ</button>
+      <button class="btn g noprint" id="share" type="button">📤 ส่งรายการให้ลูกหลาน</button>
+      <div class="msg-box noprint" id="shareMsg" role="status" aria-live="polite" hidden></div>
+      <textarea class="noprint" id="shareText" readonly hidden aria-label="ข้อความรายการสำหรับคัดลอก"></textarea>
+    </div>
+  </section>
+
+  <!-- ---------- ถาม AI ---------- -->
+  <section class="view" id="ai" aria-labelledby="aiTitle">
+    <div class="col">
+      <div>
+        <h2 id="aiTitle" tabindex="-1">ถาม AI</h2>
+        <p class="meta"><span class="pill off" id="aiMode"></span></p>
+      </div>
+      <div class="card chat" id="chat" aria-live="polite">
+        <div class="msg a">สวัสดีครับ/ค่ะ ถามเรื่องน้ำท่วมหรือการเตรียมตัวได้เลย</div>
+      </div>
+      <form class="ai-form" id="aiForm">
+        <input type="text" id="q" maxlength="500" autocomplete="off" placeholder="พิมพ์คำถาม เช่น ต้องเตรียมอะไร" aria-label="คำถาม">
+        <button class="btn g s" id="send" type="submit">ส่ง</button>
+        <button class="btn b s" id="aimic" type="button">🎤 พูดถาม</button>
+      </form>
+      <div class="msg-box" id="aiMsg" role="status" aria-live="polite" hidden></div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <h3>คำถามที่พบบ่อย</h3>
+        <div class="chips" id="chips">
+          <button class="chip" type="button">ต้องเตรียมของอะไรบ้าง</button>
+          <button class="chip" type="button">ขับรถผ่านน้ำท่วมได้ไหม</button>
+          <button class="chip" type="button">ผู้สูงอายุควรทำอย่างไร</button>
+          <button class="chip" type="button">น้ำเข้าบ้าน ไฟฟ้าต้องทำอย่างไร</button>
+          <button class="chip" type="button">เบอร์โทรฉุกเฉิน</button>
+        </div>
+      </div>
+      <div class="note"><b>AI อาจตอบผิดได้</b>เรื่องด่วนหรืออันตราย โทร 1784 (ปภ.) หรือ 1669 (เจ็บป่วยฉุกเฉิน) และติดตามประกาศจากหน่วยงานทางการ</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p><b>ข้อควรรู้:</b> ระดับความเสี่ยงคำนวณจากปริมาณฝนพยากรณ์ ไม่ใช่ระดับน้ำจริง และเกณฑ์เป็นค่าประมาณของแอปนี้ ไม่ใช่มาตรฐานทางการ กรุณาตรวจสอบกับหน่วยงานทางการด้วย</p>
+  <p>แผนที่ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">ผู้ร่วมสร้าง OpenStreetMap</a> (<a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">แจ้งแผนที่ผิด</a>) · พยากรณ์ฝน <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) · เรดาร์ <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · ค้นหาสถานที่ <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a> · เส้นทาง <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a></p>
+</footer>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<script>
+// ---------- ตั้งค่า ----------
+var CFG = Object.assign({
+  aiEndpoint: "",
+  weatherRefreshMinutes: 15,
+  tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  tileMaxZoom: 19
+}, window.FLOODGO_CONFIG || {});
+var REFRESH_MS = Math.max(5, Number(CFG.weatherRefreshMinutes) || 15) * 60 * 1000;
+var DAY = 24 * 60 * 60 * 1000;
+var views = ["home","route","result","prep","ai"];
+var maps = {};
+var here = {lat:13.7563, lon:100.5018, mine:false}; // ค่าเริ่มต้น กรุงเทพฯ
+var lastResult = null;
+var lastWeather = "";
+
+var levels = {
+  green:  {name:"ไปได้", icon:"✅", color:"#1d7a3a", sub:"ฝนน้อยตามพยากรณ์ (ความเสี่ยงต่ำ)",
+           advice:["ฝนน้อย ไปได้ แต่ควรพกร่มและดูสภาพอากาศระหว่างทาง","ถ้าเจอน้ำท่วมถนน อย่าขับฝ่า ให้เลี่ยงหรือรอให้น้ำลด"]},
+  yellow: {name:"ระวัง", icon:"⚠️", color:"#e9a700", sub:"ฝนปานกลางถึงหนักตามพยากรณ์",
+           advice:["อาจมีน้ำท่วมขังในจุดต่ำ","แนะนำให้รอฝนซา หรือเลี่ยงเส้นทางต่ำ","หากต้องไป ควรมีคนไปด้วย และบอกญาติก่อนออกเดินทาง"]},
+  red:    {name:"อย่าไป", icon:"⛔", color:"#c23a2b", sub:"ฝนหนักมากตามพยากรณ์",
+           advice:["ฝนหนักมากตามเส้นทาง เสี่ยงน้ำท่วมสูง ไม่ควรเดินทางจนกว่าฝนจะซา","ติดตามประกาศจากกรมอุตุนิยมวิทยาและ ปภ.","ถ้าติดอยู่ในที่เสี่ยงและต้องการความช่วยเหลือ โทร 1784"]},
+  unknown:{name:"ไม่ทราบ", icon:"❔", color:"#6b7a88", sub:"ข้อมูลพยากรณ์ฝนไม่ครบ จึงประเมินไม่ได้",
+           advice:["ตอนนี้ยังบอกไม่ได้ว่าฝนมากหรือน้อย","ตรวจสอบประกาศทางการและสภาพจริงก่อนออกเดินทาง"]}
+};
+var items = ["ยาประจำตัว","ไฟฉาย และที่ชาร์จแบตสำรอง","น้ำดื่มและอาหารแห้ง","เอกสารสำคัญใส่ถุงกันน้ำ","เบอร์ญาติและเบอร์ฉุกเฉิน"];
+
+// เวอร์ชันเก่าเก็บ Gemini key ไว้ในเบราว์เซอร์ ตอนนี้ไม่ใช้แล้ว จึงลบทิ้ง
+try { localStorage.removeItem("floodgo_key"); } catch (e) {}
+
+// ---------- เครื่องมือ ----------
+function $(id){ return document.getElementById(id); }
+function num(v){ return typeof v === "number" && isFinite(v); }
+function delay(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function hhmm(sec){ return new Date(sec * 1000).toLocaleTimeString("th-TH", {hour:"2-digit", minute:"2-digit"}); }
+function validPoint(p){ return p && num(p.lat) && num(p.lon) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180; }
+
+function apiError(kind, status, detail){
+  var e = new Error(kind);
+  e.kind = kind; e.status = status || 0; e.detail = detail || null;
+  return e;
+}
+function userError(text){ var e = new Error(text); e.kind = "user"; e.text = text; return e; }
+function errText(service, e){
+  if (!e) return "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
+  if (e.text) return e.text;
+  if (e.kind === "timeout") return service + "ตอบช้าเกินไป ลองใหม่อีกครั้ง";
+  if (e.kind === "network") return "เชื่อมต่อ" + service + "ไม่ได้ ตรวจสอบอินเทอร์เน็ต";
+  if (e.kind === "busy") return service + "มีคนใช้มาก รอสักครู่แล้วลองใหม่";
+  if (e.kind === "invalid") return service + "ส่งข้อมูลที่อ่านไม่ได้ ลองใหม่ภายหลัง";
+  if (e.kind === "http") return service + "มีปัญหา (รหัส " + e.status + ") ลองใหม่ภายหลัง";
+  return "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
+}
+// ใส่ชื่อบริการให้ข้อความผิดพลาด และบันทึกลง console (ไม่มีข้อมูลลับ)
+function tag(service){
+  return function(e){
+    console.warn("[floodgo]", service, e.kind || e.name, e.status || "");
+    if (!e.text) e.text = errText(service, e);
+    throw e;
+  };
+}
+
+// ดึง JSON พร้อม timeout และตรวจ HTTP status ก่อนอ่านข้อมูล
+function fetchJSON(url, opts){
+  opts = opts || {};
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, opts.timeout || 15000);
+  return fetch(url, {method:opts.method || "GET", headers:opts.headers, body:opts.body, signal:ctrl.signal})
+    .then(function(r){
+      return r.text().then(function(text){
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) {}
+        if (!r.ok) throw apiError(r.status === 429 ? "busy" : "http", r.status, data);
+        if (data === null) throw apiError("invalid", r.status);
+        return data;
+      });
+    })
+    .catch(function(e){
+      if (e && e.kind) throw e;
+      throw apiError(e && e.name === "AbortError" ? "timeout" : "network");
+    })
+    .finally(function(){ clearTimeout(timer); });
+}
+
+// แคช: เก็บในหน่วยความจำ และถ้า persist ก็เก็บใน localStorage ด้วย
+var memo = {};
+function cacheGet(key, maxAge){
+  var hit = memo[key];
+  if (!hit){ try { hit = JSON.parse(localStorage.getItem("floodgo:" + key)); } catch (e) { hit = null; } }
+  if (hit && Date.now() - hit.t < maxAge){ memo[key] = hit; return hit.v; }
+  return undefined;
+}
+function cachePut(key, value, persist){
+  var hit = {t:Date.now(), v:value};
+  memo[key] = hit;
+  if (persist){ try { localStorage.setItem("floodgo:" + key, JSON.stringify(hit)); } catch (e) {} }
+}
+(function prune(){
+  try {
+    for (var i = localStorage.length - 1; i >= 0; i--){
+      var k = localStorage.key(i);
+      if (k.indexOf("floodgo:") !== 0 || k === "floodgo:checks") continue;
+      var hit = JSON.parse(localStorage.getItem(k));
+      if (!hit || !num(hit.t) || Date.now() - hit.t > 30 * DAY) localStorage.removeItem(k);
+    }
+  } catch (e) {}
+})();
+
+// คำขอเดียวกันที่กำลังรออยู่ ใช้ผลร่วมกัน ไม่ยิงซ้ำ
+var inflight = {};
+function once(key, make){
+  if (inflight[key]) return inflight[key];
+  var p = make();
+  inflight[key] = p;
+  p.then(function(){ delete inflight[key]; }, function(){ delete inflight[key]; });
+  return p;
+}
+// เว้นระยะคำขอไปยังบริการสาธารณะ (Nominatim และ OSRM จำกัด 1 ครั้งต่อวินาที)
+function makeThrottle(gap){
+  var chain = Promise.resolve(), last = 0;
+  return function(task){
+    var run = chain.then(function(){
+      var wait = last + gap - Date.now();
+      return wait > 0 ? delay(wait) : null;
+    }).then(function(){ last = Date.now(); return task(); });
+    chain = run.catch(function(){});
+    return run;
+  };
+}
+var nominatimSlot = makeThrottle(1100);
+var osrmSlot = makeThrottle(1100);
+
+// ---------- หน้า ----------
+var firstShow = true;
+function show(){
+  var h = location.hash.replace("#","");
+  if (views.indexOf(h) < 0) h = "home";
+  if (h === "result" && !lastResult){ h = "route"; history.replaceState(null, "", "#route"); }
+  for (var i = 0; i < views.length; i++){
+    $(views[i]).classList.toggle("on", views[i] === h);
+  }
+  var links = document.querySelectorAll(".tabs a");
+  for (var j = 0; j < links.length; j++){
+    var v = links[j].getAttribute("data-v");
+    var on = v === h || (h === "result" && v === "route");
+    links[j].classList.toggle("on", on);
+    if (on) links[j].setAttribute("aria-current", "page"); else links[j].removeAttribute("aria-current");
+  }
+  var mapId = {home:"map1", route:"map2", result:"map3"}[h];
+  if (mapId) getMap(mapId);
+  window.scrollTo(0, 0);
+  if (!firstShow){ var title = $(h).querySelector("h1,h2"); if (title) title.focus({preventScroll:true}); }
+  firstShow = false;
+}
+window.addEventListener("hashchange", show);
+
+// ---------- แผนที่ ----------
+// tile.openstreetmap.org ต้องได้รับ Referer จากเบราว์เซอร์ ไฟล์ที่เปิดแบบ file:// ไม่ส่ง Referer จึงถูกบล็อก
+var tilesBlocked = location.protocol === "file:";
+var pendingFit = {};
+var FIT = {paddingTopLeft:[28,52], paddingBottomRight:[28,28]}; // ด้านบนเว้นที่ให้ป้ายชื่อต้นทาง/ปลายทาง
+function setMapMsg(id, text){
+  var box = $(id).parentNode.querySelector(".map-msg");
+  box.textContent = text;
+  box.hidden = !text;
+}
+function getMap(id){
+  if (maps[id]) return maps[id];
+  var el = $(id);
+  var m = L.map(el).setView([here.lat, here.lon], id === "map1" ? 9 : 11);
+  if (tilesBlocked){
+    el.classList.add("notiles");
+    setMapMsg(id, "แผนที่พื้นหลังไม่แสดงเมื่อเปิดไฟล์จากเครื่องโดยตรง ต้องเปิดผ่านเว็บไซต์ (https://) ส่วนข้อมูลฝนและเส้นทางยังใช้ได้");
+  } else {
+    var loaded = false, errors = 0;
+    L.tileLayer(CFG.tileUrl, {maxZoom:CFG.tileMaxZoom, attribution:CFG.tileAttribution, referrerPolicy:"strict-origin-when-cross-origin"})
+      .on("tileload", function(){ if (!loaded){ loaded = true; setMapMsg(id, ""); } })
+      .on("tileerror", function(){
+        errors++;
+        if (!loaded && errors >= 3) setMapMsg(id, "โหลดแผนที่พื้นหลังไม่ได้ตอนนี้ ตรวจสอบอินเทอร์เน็ต ข้อมูลฝนและเส้นทางยังใช้ได้");
+      })
+      .addTo(m);
+  }
+  // หน้าที่ซ่อนอยู่มีขนาด 0 พอแสดงขึ้นมาต้องให้แผนที่คำนวณขนาดใหม่
+  if (window.ResizeObserver) new ResizeObserver(function(){ onMapResize(id); }).observe(el);
+  maps[id] = m;
+  return m;
+}
+function onMapResize(id){
+  var m = maps[id];
+  if (!m || !m.getContainer().offsetWidth) return;
+  m.invalidateSize();
+  if (pendingFit[id]){ m.fitBounds(pendingFit[id], FIT); pendingFit[id] = null; }
+}
+function fitWhenVisible(id, bounds){
+  var m = getMap(id);
+  if (m.getContainer().offsetWidth){ m.invalidateSize(); m.fitBounds(bounds, FIT); }
+  else pendingFit[id] = bounds;
+}
+
+// ---------- ข้อมูลฝน (Open-Meteo) ----------
+// เกณฑ์ของแอปนี้เอง ไม่ใช่มาตรฐานทางการ: 2.5 และ 7.6 มม./ชม. คือช่วงฝนเบา/ปานกลาง/หนักที่ใช้ทั่วไป
+// ส่วน 8 และ 25 มม. คือฝนรวม 4 ชั่วโมงที่แอปตั้งเอง ฝนไม่ได้บอกระดับน้ำบนถนนโดยตรง
+function levelFrom(maxHour, total4){
+  if (maxHour >= 7.6 || total4 >= 25) return "red";
+  if (maxHour >= 2.5 || total4 >= 8) return "yellow";
+  return "green";
+}
+function weatherUrl(points, withCurrent){
+  var lats = points.map(function(p){ return p.lat.toFixed(2); }).join(",");
+  var lons = points.map(function(p){ return p.lon.toFixed(2); }).join(",");
+  return "https://api.open-meteo.com/v1/forecast?latitude=" + lats + "&longitude=" + lons +
+    "&hourly=precipitation,precipitation_probability&forecast_hours=6&timeformat=unixtime&timezone=auto" +
+    (withCurrent ? "&current=temperature_2m,precipitation,weather_code" : "");
+}
+function getWeather(points, withCurrent){
+  var url = weatherUrl(points, withCurrent);
+  var hit = cacheGet(url, REFRESH_MS);
+  if (hit) return Promise.resolve(hit);
+  return once(url, function(){
+    return fetchJSON(url, {timeout:15000}).then(function(d){
+      var list = Array.isArray(d) ? d : [d];
+      if (list.length !== points.length) throw apiError("invalid");
+      list.forEach(function(w){
+        var h = w && w.hourly;
+        if (!h || !Array.isArray(h.time) || !Array.isArray(h.precipitation) || h.time.length !== h.precipitation.length) throw apiError("invalid");
+      });
+      var out = {list:list, fetchedAt:Date.now()};
+      cachePut(url, out, true);
+      return out;
+    });
+  }).catch(tag("บริการพยากรณ์อากาศ"));
+}
+// ฝน 4 ชั่วโมงข้างหน้า: ค่า precipitation ที่เวลา T คือฝนรวมของชั่วโมงที่สิ้นสุดที่ T
+// จึงเริ่มจากเวลาแรกที่มากกว่าตอนนี้ (ชั่วโมงที่กำลังเป็นอยู่) แต่ละชั่วโมงใช้ค่าของจุดที่ฝนมากที่สุด
+function summarize(list, nowMs){
+  var now = (nowMs || Date.now()) / 1000;
+  var times = list[0].hourly.time.filter(function(t){ return t > now; }).slice(0, 4);
+  var slots = times.map(function(t){
+    var s = {start:t - 3600, end:t, mm:null, prob:null, missing:0};
+    list.forEach(function(w){
+      var i = w.hourly.time.indexOf(t);
+      var v = i >= 0 ? w.hourly.precipitation[i] : null;
+      if (num(v)) s.mm = s.mm === null ? v : Math.max(s.mm, v);
+      else s.missing++;
+      var pr = w.hourly.precipitation_probability;
+      var p = i >= 0 && pr ? pr[i] : null;
+      if (num(p)) s.prob = s.prob === null ? p : Math.max(s.prob, p);
+    });
+    return s;
+  });
+  var known = slots.filter(function(s){ return s.mm !== null; });
+  var maxH = known.length ? Math.max.apply(null, known.map(function(s){ return s.mm; })) : null;
+  var total = known.reduce(function(a, s){ return a + s.mm; }, 0);
+  var complete = slots.length === 4 && slots.every(function(s){ return s.mm !== null && s.missing === 0; });
+  var level = known.length ? levelFrom(maxH, total) : "unknown";
+  // ข้อมูลขาดห้ามนับเป็นฝน 0 จึงบอกว่า "ไปได้" ไม่ได้
+  if (level === "green" && !complete) level = "unknown";
+  return {slots:slots, maxHour:maxH, total:total, level:level, complete:complete};
+}
+function rainWord(mm){
+  if (mm === null) return "ไม่มีข้อมูล";
+  if (mm < 0.2) return "ไม่มีฝน";
+  if (mm < 2.5) return "ฝนเล็กน้อย";
+  if (mm < 7.6) return "ฝนปานกลาง";
+  return "ฝนหนัก";
+}
+function rainClass(mm){
+  if (mm === null) return "rx";
+  if (mm < 0.2) return "r0";
+  if (mm < 2.5) return "r1";
+  if (mm < 7.6) return "r2";
+  return "r3";
+}
+var wmo = [
+  [[0], "☀️", "ท้องฟ้าแจ่มใส"], [[1], "🌤️", "มีเมฆเล็กน้อย"], [[2], "⛅", "มีเมฆบางส่วน"], [[3], "☁️", "เมฆมาก"],
+  [[45,48], "🌫️", "มีหมอก"], [[51,53,55,56,57], "🌦️", "ฝนปรอย"], [[61,80], "🌦️", "ฝนเล็กน้อย"],
+  [[63,81,66], "🌧️", "ฝนปานกลาง"], [[65,82,67], "🌧️", "ฝนหนัก"], [[95,96,99], "⛈️", "พายุฝนฟ้าคะนอง"]
+];
+function weatherInfo(code){
+  for (var i = 0; i < wmo.length; i++){ if (wmo[i][0].indexOf(code) >= 0) return {icon:wmo[i][1], text:wmo[i][2]}; }
+  return {icon:"🌡️", text:"สภาพอากาศ"};
+}
+
+// ---------- ส่วนแสดงผล ----------
+function setStatus(id, level, sub){
+  var lv = levels[level];
+  var el = $(id);
+  el.className = el.className.replace(/\b(green|yellow|red|unknown)\b/g, "").trim() + " " + level;
+  el.querySelector(".status-icon").textContent = lv.icon;
+  el.querySelector(".status-name").textContent = lv.name;
+  el.querySelector(".status-sub").textContent = sub || lv.sub;
+}
+function renderBars(id, slots){
+  var box = $(id);
+  box.innerHTML = "";
+  var top = Math.max(8, Math.max.apply(null, slots.map(function(s){ return s.mm || 0; })));
+  var names = ["ชั่วโมงนี้","อีก 1 ชม.","อีก 2 ชม.","อีก 3 ชม."];
+  slots.forEach(function(s, i){
+    var col = document.createElement("div");
+    col.className = "bar " + rainClass(s.mm);
+    col.innerHTML = '<span class="bar-val"></span><span class="bar-track"><span class="bar-fill"></span></span>' +
+      '<span class="bar-time"></span><span class="bar-range"></span><span class="bar-word"></span><span class="bar-prob"></span>';
+    col.querySelector(".bar-val").textContent = s.mm === null ? "–" : s.mm.toFixed(1) + " มม.";
+    col.querySelector(".bar-fill").style.height = (s.mm === null ? 0 : Math.max(s.mm > 0 ? 6 : 3, s.mm / top * 100)) + "%";
+    col.querySelector(".bar-time").textContent = names[i];
+    col.querySelector(".bar-range").textContent = hhmm(s.start) + "–" + hhmm(s.end);
+    col.querySelector(".bar-word").textContent = rainWord(s.mm);
+    col.querySelector(".bar-prob").textContent = s.prob === null ? "" : "โอกาสฝน " + s.prob + "%";
+    col.setAttribute("aria-label", names[i] + " " + rainWord(s.mm) + (s.mm === null ? "" : " " + s.mm.toFixed(1) + " มิลลิเมตร"));
+    box.appendChild(col);
+  });
+}
+function slotText(slots){
+  return slots.map(function(s){ return hhmm(s.start) + "-" + hhmm(s.end) + " " + (s.mm === null ? "ไม่มีข้อมูล" : s.mm.toFixed(1) + " มม."); }).join(", ");
+}
+
+// ---------- หน้าแรก ----------
+var homeLastOk = 0, homeFailed = false, homeNextAt = 0, homeSeq = 0;
+var radarLayer = null, radarUrl = "", radarTime = 0;
+function loadHome(){
+  var seq = ++homeSeq;
+  var at = {lat:here.lat, lon:here.lon};
+  homeNextAt = Date.now() + REFRESH_MS;
+  getWeather([at], true).then(function(res){
+    if (seq !== homeSeq) return;
+    var w = res.list[0];
+    var s = summarize(res.list);
+    homeLastOk = res.fetchedAt; homeFailed = false;
+    homeNextAt = res.fetchedAt + REFRESH_MS;
+    setStatus("homeStatus", s.level, levels[s.level].sub + " • " + (here.mine ? "บริเวณตำแหน่งของคุณ" : "บริเวณกรุงเทพฯ"));
+    var c = w.current;
+    $("homeNow").hidden = !(c && num(c.temperature_2m));
+    if (c && num(c.temperature_2m)){
+      var info = weatherInfo(c.weather_code);
+      $("wxIcon").textContent = info.icon;
+      $("wxTemp").textContent = Math.round(c.temperature_2m) + "°C";
+      $("wxText").textContent = info.text + (num(c.precipitation) ? " • ฝน 15 นาทีล่าสุด " + c.precipitation.toFixed(1) + " มม." : "");
+    }
+    renderBars("homeBars", s.slots);
+    $("homeWeather").hidden = false;
+    lastWeather = "บริเวณผู้ใช้ ฝนพยากรณ์รายชั่วโมง: " + slotText(s.slots);
+  }).catch(function(e){
+    if (seq !== homeSeq) return;
+    homeFailed = true;
+    homeNextAt = Date.now() + 2 * 60 * 1000; // ล้มเหลว ลองใหม่ใน 2 นาที
+    if (!homeLastOk) setStatus("homeStatus", "unknown", e.text || "โหลดสภาพอากาศไม่ได้ ตรวจสอบอินเทอร์เน็ต");
+  }).then(updateStamp);
+  loadRadar();
+}
+function updateStamp(){
+  var el = $("updated");
+  if (!homeLastOk){ el.textContent = homeFailed ? "โหลดพยากรณ์ไม่สำเร็จ จะลองใหม่อัตโนมัติ" : ""; return; }
+  var t = "อัปเดตล่าสุด " + hhmm(homeLastOk / 1000) + " น.";
+  if (Date.now() - homeLastOk > 2 * REFRESH_MS) t += " ⚠️ ข้อมูลอาจไม่เป็นปัจจุบัน";
+  if (homeFailed) t += " (อัปเดตใหม่ไม่สำเร็จ)";
+  el.textContent = t;
+}
+function loadRadar(){
+  var m = getMap("map1");
+  var meta = cacheGet("radar", 10 * 60 * 1000);
+  var p = meta ? Promise.resolve(meta) : once("radar", function(){
+    return fetchJSON("https://api.rainviewer.com/public/weather-maps.json", {timeout:10000}).then(function(d){ cachePut("radar", d, false); return d; });
+  });
+  p.then(function(d){
+    var past = d && d.radar && d.radar.past;
+    var f = Array.isArray(past) && past.length ? past[past.length - 1] : null;
+    if (!d || typeof d.host !== "string" || d.host.indexOf("https://") !== 0 || !f || typeof f.path !== "string" || f.path.charAt(0) !== "/" || !num(f.time)) throw apiError("invalid");
+    if (Date.now() / 1000 - f.time > 60 * 60) throw userError("ภาพเรดาร์ล่าสุดเก่าเกิน 1 ชั่วโมง จึงไม่แสดง");
+    var url = d.host + f.path + "/256/{z}/{x}/{y}/2/1_1.png";
+    if (url !== radarUrl){
+      if (radarLayer) m.removeLayer(radarLayer);
+      // RainViewer มีภาพถึงซูม 7 เท่านั้น ซูมมากกว่านั้นให้ขยายภาพซูม 7 แทน
+      radarLayer = L.tileLayer(url, {opacity:0.6, maxNativeZoom:7, maxZoom:CFG.tileMaxZoom, zIndex:5,
+        attribution:'เรดาร์ <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>'}).addTo(m);
+      radarUrl = url;
+    }
+    radarTime = f.time;
+    $("radarMsg").textContent = "ภาพเรดาร์เวลา " + hhmm(f.time) + " น.";
+  }).catch(function(e){
+    console.warn("[floodgo] radar", e.kind || e.name, e.status || "");
+    if (radarLayer && Date.now() / 1000 - radarTime > 60 * 60){ m.removeLayer(radarLayer); radarLayer = null; radarUrl = ""; }
+    $("radarMsg").textContent = radarLayer ? "อัปเดตเรดาร์ไม่ได้ แสดงภาพเวลา " + hhmm(radarTime) + " น." : (e.text || "โหลดเรดาร์ฝนไม่ได้ตอนนี้ (แผนที่ยังใช้ได้)");
+  });
+}
+function locate(){
+  return new Promise(function(resolve, reject){
+    if (!window.isSecureContext) return reject(userError("ขอตำแหน่งได้เฉพาะเว็บที่เปิดผ่าน https:// พิมพ์ชื่อสถานที่แทนได้"));
+    if (!navigator.geolocation) return reject(userError("เบราว์เซอร์นี้หาตำแหน่งไม่ได้ พิมพ์ชื่อสถานที่แทนได้"));
+    navigator.geolocation.getCurrentPosition(function(p){
+      here = {lat:p.coords.latitude, lon:p.coords.longitude, mine:true};
+      resolve(here);
+    }, function(err){
+      reject(userError(err.code === 1 ? "ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง เปิดสิทธิ์ได้ที่การตั้งค่าเบราว์เซอร์ หรือพิมพ์ชื่อสถานที่แทน"
+        : err.code === 3 ? "หาตำแหน่งนานเกินไป ลองใหม่อีกครั้ง" : "หาตำแหน่งไม่ได้ ลองใหม่ หรือพิมพ์ชื่อสถานที่แทน"));
+    }, {enableHighAccuracy:false, timeout:15000, maximumAge:5 * 60 * 1000});
+  });
+}
+function useMyPlace(){
+  $("placeLabel").textContent = "บริเวณตำแหน่งของคุณ";
+  getMap("map1").setView([here.lat, here.lon], 9);
+  loadHome();
+}
+$("homeLoc").onclick = function(){
+  $("placeLabel").textContent = "กำลังหาตำแหน่ง...";
+  locate().then(useMyPlace, function(e){
+    $("placeLabel").textContent = (here.mine ? "บริเวณตำแหน่งของคุณ" : "บริเวณกรุงเทพฯ (ค่าเริ่มต้น)") + " — " + e.text;
+  });
+};
+
+// ---------- เสียง ----------
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var listening = null;
+function setMsg(id, type, text){
+  var el = $(id);
+  el.className = "msg-box" + (type ? " " + type : "");
+  el.textContent = text || "";
+  el.hidden = !text;
+}
+function micErr(code){
+  if (code === "not-allowed" || code === "service-not-allowed") return "ไม่ได้รับอนุญาตให้ใช้ไมโครโฟน เปิดสิทธิ์ได้ที่การตั้งค่าเบราว์เซอร์";
+  if (code === "no-speech") return "ไม่ได้ยินเสียง ลองกดแล้วพูดอีกครั้ง";
+  if (code === "audio-capture") return "ไม่พบไมโครโฟนในเครื่องนี้";
+  if (code === "network") return "การฟังเสียงต้องใช้อินเทอร์เน็ต ลองใหม่อีกครั้ง";
+  return "ฟังไม่ได้ ลองใหม่อีกครั้ง หรือพิมพ์แทน";
+}
+function listen(cb, msgId){
+  if (!SR){ setMsg(msgId, "error", "เบราว์เซอร์นี้ไม่รองรับการพูด ลองใช้ Chrome หรือพิมพ์แทน"); return; }
+  if (listening){ listening.abort(); listening = null; }
+  var r = new SR(), heard = false;
+  r.lang = "th-TH";
+  r.interimResults = false;
+  r.maxAlternatives = 1;
+  r.onresult = function(e){ heard = true; setMsg(msgId, "", ""); cb(e.results[0][0].transcript); };
+  r.onerror = function(e){ heard = true; if (e.error !== "aborted") setMsg(msgId, "error", micErr(e.error)); };
+  r.onend = function(){ listening = null; if (!heard) setMsg(msgId, "", ""); };
+  try { r.start(); listening = r; setMsg(msgId, "", "🎤 กำลังฟัง... พูดได้เลย"); }
+  catch (err) { setMsg(msgId, "error", "เริ่มฟังไม่ได้ ลองใหม่อีกครั้ง"); }
+}
+function say(text){
+  if (!window.speechSynthesis) return false;
+  speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "th-TH";
+  speechSynthesis.speak(u);
+  return true;
+}
+
+// ---------- เช็กเส้นทาง ----------
+var fromPoint = null;
+var pickLayer = null;
+
+$("loc").onclick = function(){
+  setMsg("routeMsg", "", "กำลังหาตำแหน่ง...");
+  locate().then(function(){
+    fromPoint = {lat:here.lat, lon:here.lon, label:"ตำแหน่งของฉัน"};
+    $("from").value = "ตำแหน่งของฉัน";
+    setMsg("routeMsg", "ok", "ได้ตำแหน่งแล้ว กรอกปลายทางต่อได้เลย");
+    showPicks([fromPoint]);
+  }, function(e){ setMsg("routeMsg", "error", e.text); });
+};
+$("mic").onclick = function(){
+  listen(function(t){ $("to").value = t; }, "routeMsg");
+};
+$("from").oninput = function(){ fromPoint = null; };
+
+function showPicks(points){
+  var m = getMap("map2");
+  if (pickLayer) m.removeLayer(pickLayer);
+  pickLayer = L.layerGroup().addTo(m);
+  var names = ["ต้นทาง","ปลายทาง"];
+  points.forEach(function(p, i){
+    L.circleMarker([p.lat, p.lon], {radius:10, color:"#fff", weight:3, fillColor:i ? "#c23a2b" : "#0f5b8f", fillOpacity:1})
+      .bindTooltip(names[i] + ": " + p.label, {permanent:true, direction:"top", offset:[0, -10]}).addTo(pickLayer);
+  });
+  if (points.length > 1) fitWhenVisible("map2", L.latLngBounds(points.map(function(p){ return [p.lat, p.lon]; })));
+  else m.setView([points[0].lat, points[0].lon], 13);
+}
+
+// ค้นหาสถานที่ (Nominatim): ค้นเฉพาะตอนกดตรวจสอบ ไม่ทำ autocomplete เก็บผลไว้ใช้ซ้ำ
+function geocode(name){
+  var q = name.replace(/\s+/g, " ").trim().slice(0, 120);
+  var key = "geo:" + q.toLowerCase();
+  var notFound = function(){ return userError('หาสถานที่ "' + q + '" ไม่เจอ ลองพิมพ์ให้ชัดขึ้น เช่น เพิ่มชื่อเขต อำเภอ หรือจังหวัด'); };
+  var hit = cacheGet(key, 30 * DAY);
+  if (hit) return Promise.resolve(hit);
+  if (cacheGet("geo0:" + q.toLowerCase(), 60 * 60 * 1000)) return Promise.reject(notFound());
+  return once(key, function(){
+    var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=th&accept-language=th&q=" + encodeURIComponent(q);
+    return nominatimSlot(function(){ return fetchJSON(url, {timeout:15000}); }).then(function(d){
+      if (!Array.isArray(d)) throw apiError("invalid");
+      if (!d.length){ cachePut("geo0:" + q.toLowerCase(), true, true); throw notFound(); }
+      var place = {lat:parseFloat(d[0].lat), lon:parseFloat(d[0].lon), label:d[0].name || String(d[0].display_name || q).split(",")[0]};
+      if (!validPoint(place)) throw apiError("invalid");
+      cachePut(key, place, true);
+      return place;
+    });
+  }).catch(tag("บริการค้นหาสถานที่"));
+}
+// เส้นทางขับรถ (OSRM demo server): ไม่มีข้อมูลรถติดจริง
+function getRoute(a, b){
+  if (!validPoint(a) || !validPoint(b)) return Promise.reject(userError("พิกัดต้นทางหรือปลายทางไม่ถูกต้อง"));
+  var url = "https://router.project-osrm.org/route/v1/driving/" + a.lon.toFixed(5) + "," + a.lat.toFixed(5) + ";" +
+    b.lon.toFixed(5) + "," + b.lat.toFixed(5) + "?overview=full&geometries=geojson";
+  var hit = cacheGet(url, 60 * 60 * 1000);
+  if (hit) return Promise.resolve(hit);
+  return once(url, function(){
+    return osrmSlot(function(){ return fetchJSON(url, {timeout:20000}); }).then(function(d){
+      if (!d || d.code !== "Ok" || !Array.isArray(d.routes) || !d.routes.length) throw userError("หาเส้นทางขับรถระหว่างสองจุดนี้ไม่เจอ");
+      var r = d.routes[0], g = r.geometry;
+      var good = g && g.type === "LineString" && Array.isArray(g.coordinates) && g.coordinates.length >= 2 &&
+        g.coordinates.every(function(c){ return Array.isArray(c) && validPoint({lon:c[0], lat:c[1]}); }) &&
+        num(r.distance) && num(r.duration);
+      if (!good) throw apiError("invalid");
+      // OSRM จะลากจุดไปหาถนนที่ใกล้ที่สุด ถ้าไกลเกิน 2 กม. แปลว่าสถานที่น่าจะผิด
+      if ((d.waypoints || []).some(function(w){ return num(w.distance) && w.distance > 2000; })){
+        throw userError("สถานที่อยู่ห่างถนนเกิน 2 กม. ลองเลือกสถานที่อื่นที่อยู่ใกล้ถนน");
+      }
+      var out = {distance:r.distance, duration:r.duration, geometry:{type:"LineString", coordinates:g.coordinates}};
+      cachePut(url, out, false);
+      return out;
+    }, function(e){
+      var code = e.detail && e.detail.code;
+      if (code === "NoRoute" || code === "NoSegment") throw userError("หาเส้นทางขับรถระหว่างสองจุดนี้ไม่เจอ");
+      if (code === "InvalidValue" || code === "InvalidQuery") throw userError("พิกัดต้นทางหรือปลายทางไม่ถูกต้อง");
+      throw e;
+    });
+  }).catch(tag("บริการเส้นทาง"));
+}
+function samplePoints(coords, n){
+  var out = [];
+  for (var i = 0; i < n; i++){
+    var c = coords[Math.round(i * (coords.length - 1) / (n - 1))];
+    out.push({lat:c[1], lon:c[0]});
+  }
+  return out;
+}
+
+var checking = false;
+$("routeForm").onsubmit = function(e){
+  e.preventDefault();
+  if (checking) return;
+  var aName = $("from").value.trim();
+  var bName = $("to").value.trim();
+  if (!fromPoint && !aName){ setMsg("routeMsg", "error", "กรอกต้นทาง หรือกด \"ใช้ตำแหน่งของฉัน\" ก่อน"); $("from").focus(); return; }
+  if (!bName){ setMsg("routeMsg", "error", "กรอกปลายทางก่อน"); $("to").focus(); return; }
+  checking = true;
+  $("go").disabled = true;
+  setMsg("routeMsg", "", "1/3 กำลังค้นหาสถานที่...");
+  var aPromise = fromPoint ? Promise.resolve(fromPoint) : geocode(aName);
+  aPromise.then(function(a){
+    return geocode(bName).then(function(b){ return [a, b]; });
+  }).then(function(ab){
+    if (Math.abs(ab[0].lat - ab[1].lat) < 1e-4 && Math.abs(ab[0].lon - ab[1].lon) < 1e-4) throw userError("ต้นทางและปลายทางเป็นที่เดียวกัน");
+    showPicks(ab);
+    setMsg("routeMsg", "", "2/3 กำลังหาเส้นทาง...");
+    return getRoute(ab[0], ab[1]).then(function(route){
+      setMsg("routeMsg", "", "3/3 กำลังดูพยากรณ์ฝนตามเส้นทาง...");
+      var pts = samplePoints(route.geometry.coordinates, 6);
+      return getWeather(pts, false).then(function(res){
+        return {route:route, res:res, s:summarize(res.list), pts:pts, a:ab[0], b:ab[1]};
+      });
+    });
+  }).then(function(r){
+    setMsg("routeMsg", "", "");
+    showResult(r, aName || "ตำแหน่งของฉัน", bName);
+  }).catch(function(err){
+    setMsg("routeMsg", "error", err.text || errText("", err));
+  }).then(function(){
+    checking = false;
+    $("go").disabled = false;
+  });
+};
+
+function fmtDuration(sec){
+  var min = Math.max(1, Math.round(sec / 60));
+  if (min < 60) return "~" + min + " นาที";
+  return "~" + Math.floor(min / 60) + " ชม. " + (min % 60) + " นาที";
+}
+var routeLayer = null;
+function showResult(r, aName, bName){
+  lastResult = r;
+  var lv = levels[r.s.level];
+  setStatus("resStatus", r.s.level);
+  $("resRoute").textContent = aName + " → " + bName;
+  $("resFound").textContent = "ตำแหน่งที่ค้นเจอ: " + r.a.label + " → " + r.b.label;
+  $("resKm").textContent = (r.route.distance / 1000).toFixed(1) + " กม.";
+  $("resTime").textContent = fmtDuration(r.route.duration);
+  $("resMax").textContent = r.s.maxHour === null ? "ไม่มีข้อมูล" : r.s.maxHour.toFixed(1);
+  var ul = $("resAdvice");
+  ul.innerHTML = "";
+  lv.advice.forEach(function(t){ var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+  $("resSos").hidden = r.s.level !== "red";
+  renderBars("resBars", r.s.slots);
+  var missing = r.s.slots.reduce(function(a, s){ return a + s.missing; }, 0);
+  $("resData").textContent = "ใช้ฝนจาก 6 จุดตามเส้นทาง แต่ละชั่วโมงแสดงค่าของจุดที่ฝนมากที่สุด" +
+    (missing ? " • ข้อมูลขาด " + missing + " ค่า (ไม่นับเป็นฝน 0)" : "");
+  $("source").textContent = "ข้อมูลจาก: Open-Meteo (พยากรณ์ฝน), OpenStreetMap/Nominatim (สถานที่), OSRM (เส้นทาง) • ดึงข้อมูลฝนเมื่อ " + hhmm(r.res.fetchedAt / 1000) + " น.";
+  lastWeather = "เส้นทาง " + aName + " ไป " + bName + " ระดับ " + lv.name + " ฝนพยากรณ์สูงสุดตามทาง: " + slotText(r.s.slots);
+  location.hash = "result";
+  drawRoute(r);
+}
+function drawRoute(r){
+  var m = getMap("map3");
+  if (routeLayer) m.removeLayer(routeLayer);
+  routeLayer = L.layerGroup().addTo(m);
+  var line = L.geoJSON(r.route.geometry, {style:{color:"#ffffff", weight:11, opacity:0.9}}).addTo(routeLayer);
+  L.geoJSON(r.route.geometry, {style:{color:levels[r.s.level].color, weight:6}}).addTo(routeLayer);
+  r.pts.forEach(function(p, i){
+    var ps = summarize([r.res.list[i]]);
+    L.circleMarker([p.lat, p.lon], {radius:7, color:"#fff", weight:2, fillColor:levels[ps.level].color, fillOpacity:1})
+      .bindTooltip("จุดตรวจฝน " + (i + 1) + ": ฝนสูงสุด " + (ps.maxHour === null ? "ไม่มีข้อมูล" : ps.maxHour.toFixed(1) + " มม./ชม."))
+      .addTo(routeLayer);
+  });
+  var ends = [[r.a, "ต้นทาง", "#0f5b8f"], [r.b, "ปลายทาง", "#c23a2b"]];
+  ends.forEach(function(e){
+    L.circleMarker([e[0].lat, e[0].lon], {radius:11, color:"#fff", weight:3, fillColor:e[2], fillOpacity:1})
+      .bindTooltip(e[1], {permanent:true, direction:"top", offset:[0, -10]}).addTo(routeLayer);
+  });
+  fitWhenVisible("map3", line.getBounds());
+}
+$("speak").onclick = function(){
+  if (!lastResult) return;
+  var lv = levels[lastResult.s.level];
+  if (!say("ผลการตรวจสอบ " + lv.name + " " + lv.sub + " " + lv.advice.join(" ") + " ผลนี้ประเมินจากฝนพยากรณ์ ไม่ใช่ระดับน้ำจริง")){
+    alert("เบราว์เซอร์นี้อ่านออกเสียงไม่ได้");
+  }
+};
+
+// ---------- รายการเตรียม ----------
+var checks = [];
+try { checks = JSON.parse(localStorage.getItem("floodgo:checks")) || []; } catch (e) {}
+(function(){
+  var list = $("list");
+  items.forEach(function(name, i){
+    var label = document.createElement("label");
+    label.className = "card check";
+    var box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !!checks[i];
+    box.onchange = function(){
+      checks[i] = box.checked;
+      try { localStorage.setItem("floodgo:checks", JSON.stringify(checks)); } catch (e) {}
+      prepProgress();
+    };
+    label.appendChild(box);
+    label.appendChild(document.createTextNode(name));
+    list.appendChild(label);
+  });
+  prepProgress();
+})();
+function prepProgress(){
+  var done = items.filter(function(n, i){ return checks[i]; }).length;
+  $("prepProgress").textContent = "เตรียมแล้ว " + done + " จาก " + items.length + " อย่าง";
+}
+$("print").onclick = function(){ window.print(); };
+$("share").onclick = function(){
+  var text = "รายการที่ต้องเตรียมรับน้ำท่วม:\n";
+  for (var i = 0; i < items.length; i++){
+    text += (checks[i] ? "[x] " : "[ ] ") + items[i] + "\n";
+  }
+  text += "ฉุกเฉิน โทร 1784 (ปภ.) / 1669 (เจ็บป่วยฉุกเฉิน)";
+  if (/^https?:$/.test(location.protocol)) text += "\nเช็กก่อนเดินทาง: " + location.href.split("#")[0];
+  $("shareText").hidden = true;
+  var manual = function(){
+    $("shareText").value = text;
+    $("shareText").hidden = false;
+    $("shareText").select();
+    setMsg("shareMsg", "", "ส่งอัตโนมัติไม่ได้ กดค้างที่ข้อความด้านล่างเพื่อคัดลอก");
+  };
+  var copy = function(){
+    if (!navigator.clipboard || !window.isSecureContext) return manual();
+    navigator.clipboard.writeText(text).then(function(){ setMsg("shareMsg", "ok", "คัดลอกรายการแล้ว นำไปวางในแชทได้เลย"); }, manual);
+  };
+  if (navigator.share){
+    navigator.share({title:"สิ่งที่ต้องเตรียมรับน้ำท่วม", text:text}).catch(function(e){ if (e && e.name !== "AbortError") copy(); });
+  } else copy();
+};
+
+// ---------- ถาม AI ----------
+var answers = [
+  {k:["เตรียม","ของ"], a:"เตรียมยาประจำตัว ไฟฉาย แบตสำรอง น้ำดื่ม อาหารแห้ง เอกสารสำคัญใส่ถุงกันน้ำ และเบอร์ฉุกเฉิน"},
+  {k:["ขับ","รถ"], a:"ไม่ควรขับผ่านน้ำที่สูงเกินครึ่งล้อรถ เครื่องยนต์อาจดับและกระแสน้ำอาจพัดรถได้ ให้หาเส้นทางเลี่ยงหรือรอให้น้ำลด"},
+  {k:["ผู้สูงอายุ","คนแก่","แก่"], a:"ผู้สูงอายุควรเลี่ยงการเดินทางช่วงฝนหนัก พกยาประจำตัว และให้มีคนไปด้วย"},
+  {k:["โทร","ฉุกเฉิน","ช่วย"], a:"โทร 1784 (กรมป้องกันและบรรเทาสาธารณภัย) หรือ 1669 (การแพทย์ฉุกเฉิน)"},
+  {k:["ไฟ"], a:"หากน้ำเข้าบ้าน ให้ตัดไฟที่เบรกเกอร์ก่อน และอย่าสัมผัสอุปกรณ์ไฟฟ้าขณะเปียก"}
+];
+var chat = $("chat");
+var qBox = $("q");
+var aiOn = typeof CFG.aiEndpoint === "string" && /^https:\/\//.test(CFG.aiEndpoint);
+var aiBusy = false;
+$("aiMode").className = "pill " + (aiOn ? "on" : "off");
+$("aiMode").textContent = aiOn ? "🟢 AI พร้อมตอบ" : "⚪ ตอบจากคำตอบสำเร็จรูป (ยังไม่ได้ตั้งค่า AI)";
+
+function add(cls, t, note){
+  var m = document.createElement("div");
+  m.className = "msg " + cls;
+  fill(m, t, note);
+  chat.appendChild(m);
+  chat.scrollTop = chat.scrollHeight;
+  return m;
+}
+function fill(m, t, note){
+  m.textContent = t;
+  if (note){ var s = document.createElement("small"); s.textContent = note; m.appendChild(s); }
+  chat.scrollTop = chat.scrollHeight;
+}
+function ruleReply(q){
+  for (var i = 0; i < answers.length; i++){
+    for (var j = 0; j < answers[i].k.length; j++){
+      if (q.indexOf(answers[i].k[j]) >= 0) return answers[i].a;
+    }
+  }
+  return "ลองถามเรื่องการเตรียมของ การขับรถ ผู้สูงอายุ ไฟฟ้า หรือเบอร์ฉุกเฉิน";
+}
+function aiErrText(e){
+  var code = e && e.detail && e.detail.error;
+  if (code === "rate_limited") return "ถามถี่เกินไป รอประมาณ 1 นาที";
+  if (code === "ai_quota") return "AI ถูกใช้งานเต็มโควตาแล้ว";
+  if (code === "ai_not_configured") return "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า AI";
+  if (code === "ai_blocked") return "AI ตอบคำถามนี้ไม่ได้";
+  if (code === "ai_timeout" || (e && e.kind === "timeout")) return "AI ตอบช้าเกินไป";
+  if (e && e.kind === "network") return "เชื่อมต่อ AI ไม่ได้";
+  return "AI ใช้ไม่ได้ตอนนี้";
+}
+function ask(q){
+  q = (q || "").trim().slice(0, 500);
+  if (!q || aiBusy) return;
+  add("u", q);
+  if (!aiOn){ var t = ruleReply(q); add("a", t); say(t); return; }
+  aiBusy = true;
+  $("send").disabled = true;
+  var bubble = add("a", "กำลังคิด...");
+  fetchJSON(CFG.aiEndpoint, {
+    method:"POST", headers:{"Content-Type":"application/json"}, timeout:30000,
+    body:JSON.stringify({question:q, context:lastWeather.slice(0, 800)})
+  }).then(function(d){
+    if (!d || typeof d.answer !== "string" || !d.answer.trim()) throw apiError("invalid");
+    fill(bubble, d.answer.trim(), "คำตอบจาก AI อาจผิดพลาดได้ เรื่องด่วนโทร 1784 / 1669 และติดตามประกาศทางการ");
+    say(d.answer);
+  }).catch(function(e){
+    console.warn("[floodgo] ai", e.kind || e.name, e.status || "", e.detail && e.detail.error || "");
+    var t = ruleReply(q);
+    fill(bubble, t, aiErrText(e) + " จึงตอบจากคำตอบสำเร็จรูป");
+    say(t);
+  }).then(function(){
+    aiBusy = false;
+    $("send").disabled = false;
+  });
+}
+$("aiForm").onsubmit = function(e){ e.preventDefault(); ask(qBox.value); qBox.value = ""; };
+$("aimic").onclick = function(){ listen(function(t){ ask(t); }, "aiMsg"); };
+$("chips").onclick = function(e){ if (e.target.classList.contains("chip")) ask(e.target.textContent); };
+
+// ---------- เริ่มต้น ----------
+show();
+// ถ้าเคยอนุญาตตำแหน่งแล้วใช้เลย ถ้ายังไม่เคย ไม่ถามทันทีตอนเปิดเว็บ
+(navigator.permissions && window.isSecureContext ? navigator.permissions.query({name:"geolocation"}) : Promise.reject())
+  .then(function(st){ if (st.state !== "granted") throw 0; return locate(); })
+  .then(function(){ $("placeLabel").textContent = "บริเวณตำแหน่งของคุณ"; getMap("map1").setView([here.lat, here.lon], 9); }, function(){})
+  .then(loadHome);
+// รีเฟรชตามรอบที่ตั้งไว้ เฉพาะตอนที่เปิดหน้าเว็บดูอยู่
+setInterval(function(){
+  if (!document.hidden && Date.now() >= homeNextAt) loadHome();
+  updateStamp();
+}, 60 * 1000);
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden && homeNextAt && Date.now() >= homeNextAt) loadHome();
+});
+</script>
+</body>
+</html>
